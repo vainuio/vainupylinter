@@ -187,7 +187,7 @@ class PylintRunner(object):
             self.logging.info("PYLINT WAS SUCCESSFUL!")
             self.logging.info('------------------------------------------------------------------')
             return 0
-        elif len(self.failed_files) > 1:
+        else:
             self.logging.warning('------------------------------------------------------------------')
             self.logging.warning("PYLINTING FAILED. THE FOLLOWING FILES DID NOT PASS.")
             self.logging.warning('\n'.join(self.failed_files))
