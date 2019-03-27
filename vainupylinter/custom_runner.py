@@ -167,7 +167,7 @@ class PylintRunner(object):
         if errors and not self.allow_errors:
             self.logging.warning("ERROR(S) DETECTED IN {}.".format(self.fname))
             file_passed = False
-        if score < self.thresh:
+        if score and score < self.thresh:
             self.logging.warning("SCORE {} IS BELOW THE THRESHOLD {} for {}".format(score, self.thresh,
                                                                      self.fname))
             file_passed = False
