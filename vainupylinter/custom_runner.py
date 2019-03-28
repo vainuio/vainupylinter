@@ -171,7 +171,7 @@ class PylintRunner(object):
             self.logging.warning("SCORE {} IS BELOW THE THRESHOLD {} for {}".format(score, self.thresh,
                                                                      self.fname))
             file_passed = False
-        if not file_passed and self.ignore_tests and ("/test_" in self.fname or "tests.py" in self.fname):
+        if not file_passed and self.ignore_tests and ("test_" in fname.split("/")[-1] or "tests.py" in self.fname):
             self.logging.info("ASSUMING {} IS TEST FILE. ALLOWING.".format(self.fname))
             self.logging.info('------------------------------------------------------------------\n')
         elif file_passed:
