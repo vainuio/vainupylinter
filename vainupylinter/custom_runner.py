@@ -1,7 +1,7 @@
 """
 Wrap pylint inside custom class to do some customised handling of the result"
 """
-
+# pylint: disable=line-too-long
 from __future__ import print_function
 import sys
 import logging
@@ -93,6 +93,7 @@ class PylintRunner(object):
                                  format='%(message)s')
 
     def clean_up(self):
+        """Clean results if same instance is going to be used"""
         self.fname = None
         self.failed_files = None
         self.results = None
@@ -169,9 +170,10 @@ class PylintRunner(object):
             file_passed = False
         if score and score < self.thresh:
             self.logging.warning("SCORE {} IS BELOW THE THRESHOLD {} for {}".format(score, self.thresh,
-                                                                     self.fname))
+                                                                                    self.fname))
             file_passed = False
-        if not file_passed and self.ignore_tests and ("test_" in fname.split("/")[-1] or "tests.py" in self.fname):
+        if not file_passed and self.ignore_tests and ("test_" in self.fname.split("/")[-1] or \
+                                                      "tests.py" in self.fname):
             self.logging.info("ASSUMING {} IS TEST FILE. ALLOWING.".format(self.fname))
             self.logging.info('------------------------------------------------------------------\n')
         elif file_passed:
@@ -193,7 +195,7 @@ class PylintRunner(object):
             self.logging.warning('\n'.join(self.failed_files))
             self.logging.info('------------------------------------------------------------------')
         return 1
-
+# pylint: enable=line-too-long
     def run(self, fnames):
         """Run for specified files. Lint each file indepedently
         Input
