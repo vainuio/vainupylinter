@@ -30,7 +30,7 @@ def parse_args(args):
         )
     parser.add_argument(
         '-t', '--thresh',
-        type=int,
+        type=float,
         default=9.2,
         metavar='thresh',
         help='Threshold the code must reach to pass. Defaults to 9.8.'
