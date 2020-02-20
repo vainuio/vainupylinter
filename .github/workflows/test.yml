@@ -1,0 +1,28 @@
+name: Python test
+
+on: [push]
+
+jobs:
+  test:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: Set up Python 3.7
+      uses: actions/setup-python@v1
+      with:
+        python-version: 3.7
+    - name: Install requirements
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+    - name: Test coverage
+      run: |
+        pip install coverage
+        coverage run --omit=*/test_* --source=vainupylinter -m unittest discover
+        coverage report
+    - name: Pylint
+      run: |
+        pip install pylint-exit
+        pylint vainupylinter  || pylint-exit -efail $?
