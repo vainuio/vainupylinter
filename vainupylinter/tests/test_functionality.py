@@ -1,3 +1,5 @@
+"""Test basic funtionality of custom_runner"""
+
 from __future__ import absolute_import
 import sys
 import unittest
@@ -7,17 +9,18 @@ except ImportError:
     from mock import patch
 import os.path as op
 
+from argparse import Namespace
+
 TEST_DIR = op.dirname(op.abspath(__file__))
 sys.path.insert(0, op.abspath(op.join(op.dirname(__file__), '..')))
 
-from argparse import Namespace
-from custom_runner import PylintRunner, parse_args
+from custom_runner import PylintRunner, parse_args  # pylint:disable=wrong-import-position
 
 # pylint: disable=missing-docstring
 class VainuTestCase(unittest.TestCase):
 
     def setUp(self):
-        args = Namespace(rcfile=None, thresh=9, allow_errors=False,
+        args = Namespace(rcfile=None, thresh=9.0, allow_errors=False,
                          ignore_tests=False, keep_results=False,
                          reduce_logging=False,
                          verbosity=30)
@@ -89,7 +92,7 @@ class VainuTestCase(unittest.TestCase):
 
     def test_silent_crash(self):
         self.runner.keep_results = True
-        with self.assertRaises(SystemExit) as sys_exit:
+        with self.assertRaises(SystemExit):
             self.runner.run([op.join(TEST_DIR, "inputs/test_input_pass.py")])
         self.runner.results.linter.stats = {'global_note': False}
         self.assertTrue(self.runner.check_no_silent_crash())

@@ -189,11 +189,10 @@ class PylintRunner(object):
             self.logging.info("PYLINT WAS SUCCESSFUL!")
             self.logging.info('------------------------------------------------------------------')
             return 0
-        else:
-            self.logging.warning('------------------------------------------------------------------')
-            self.logging.warning("PYLINTING FAILED. THE FOLLOWING FILES DID NOT PASS.")
-            self.logging.warning('\n'.join(self.failed_files))
-            self.logging.info('------------------------------------------------------------------')
+        self.logging.warning('------------------------------------------------------------------')
+        self.logging.warning("PYLINTING FAILED. THE FOLLOWING FILES DID NOT PASS.")
+        self.logging.warning('\n'.join(self.failed_files))
+        self.logging.info('------------------------------------------------------------------')
         return 1
 # pylint: enable=line-too-long
     def run(self, fnames):
