@@ -1,0 +1,45 @@
+#!/bin/bash
+
+
+# Get staged python files
+stagedfiles=`git diff --staged  --name-only -- '*.py'`
+if [ -z "${stagedfiles-}" ]
+then
+    printf "No python files staged for commit. Accepting.\n"
+    exit 0
+fi
+
+# Assign stdin to keyboard
+exec < /dev/tty
+
+printf "Following modules are needed for this hook to work:"
+printf "coverage (pip install coverage)\n"
+printf "pylint (pip install pylint)\n"
+printf "pylint-exit (pip install pylint-exit)\n"
+printf "\nCheck .githooks/pre-commit for details \n\n"
+
+
+printf "*********************\n"
+printf 'Running tests\n'
+
+coverage run -m unittest discover . > /dev/null
+if [ $? -ne 0 ]; then
+    echo 'Tests failed. Aborting commit'
+    exit 1
+fi
+
+printf "*********************\n"
+printf "Running pylint...\n"
+printf "No errors or fatal errors allowed\n"
+
+pylint vainupylinter  || pylint-exit -efail $?
+if [ $? -ne 0 ]; then
+    echo 'Pylint failed. Aborting commit'
+    exit 1
+fi
+
+printf "\n*********************\n"
+printf "SUCCESS.\nCommit accepted\n"
+printf "*********************\n"
+
+exit 0
