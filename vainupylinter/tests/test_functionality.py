@@ -23,7 +23,7 @@ class VainuTestCase(unittest.TestCase):
         args = Namespace(rcfile=None, thresh=9.0, allow_errors=False,
                          ignore_tests=False, keep_results=False,
                          reduce_logging=False,
-                         verbosity=30)
+                         verbosity=30, custom_path="")
         self.runner = PylintRunner(args)
 
     def test_wrong_fileinputs(self):
@@ -101,9 +101,12 @@ class VainuTestCase(unittest.TestCase):
         self.assertFalse(self.runner.check_no_silent_crash())
 
     def test_parse_args(self):
-        # Prettify the coverage
-        parsed = parse_args(["-e", "i", 'test1.py', 'test2.py', 'test3.py'])
+        """Confirm that inputs are expected type"""
+        parsed = parse_args(["-e", "-i", "-t", "9.0", 'test1.py', 'test2.py', 'test3.py'])
         self.assertTrue(len(parsed.fnames), 3)
+        self.assertTrue(parsed.ignore_tests)
+        self.assertTrue(parsed.allow_errors)
+        self.assertEqual(parsed.thresh, 9.0)
 
     def tearDown(self):
         self.runner = None
