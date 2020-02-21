@@ -1,6 +1,6 @@
 # Vainu pylinter
 
-The purpose of this module is to allow easy import to the vainu repostories using python.
+The purpose of this module is to allow easy import to the vainu repositories using python.
 
 The repository contains
 * custom_runner.py : Lints each file separately. If any of the files fail, the runner will return exit code 1.
@@ -33,3 +33,15 @@ To check files with custom pylinter, use
 Make sure that you have enabled commit hooks in .githooks:
 
 `vainupylinter <FNAME1> <FNAME2> ...`
+
+
+
+## Inputs
+
+| Argument           | Type  | Default | Required | Description                                                             |
+|--------------------|-------|---------|----------|-------------------------------------------------------------------------|
+|                    | str   |         | Yes      | File paths to be checked. Separated by space                            |
+| --thresh, -t       | float | 9.2     | No       | Threshold for files to be considered OK                                 |
+| --rcfile, -r       | str   | ""      | No       | Custom path for .pylintrc file. If not given, defaults to pylint logic. |
+| --allow-errors, -e | bool  | False   | No       | Return zero exit-code even though pylint emits an error-level message   |
+| --keep-results, -k | bool  | False   | No       | Do not clean up runner in between runs.                                 |
