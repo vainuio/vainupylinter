@@ -22,7 +22,8 @@ printf "\nCheck .githooks/pre-commit for details \n\n"
 printf "*********************\n"
 printf 'Running tests\n'
 
-coverage run -m unittest discover . > /dev/null
+coverage run --omit=*/test_* --source=vainupylinter -m unittest discover . > /dev/null
+coverage report
 if [ $? -ne 0 ]; then
     echo 'Tests failed. Aborting commit'
     exit 1
