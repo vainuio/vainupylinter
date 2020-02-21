@@ -108,6 +108,50 @@ class VainuTestCase(unittest.TestCase):
         self.assertTrue(parsed.allow_errors)
         self.assertEqual(parsed.thresh, 9.0)
 
+    def testCustomRulesSetup(self):
+        """Test that setup works correctly"""
+        args = Namespace(rcfile=None, thresh=9.0, allow_errors=False,
+                         ignore_tests=False, keep_results=False,
+                         reduce_logging=False,
+                         verbosity=30, custom_path="not_existing")
+        with self.assertRaises(Exception):
+            PylintRunner(args)
+        module_with_slashes = "tests/__init__.py"
+        module_without_funcs = "tests"
+        # Incorrect path
+        args.custom_path = module_with_slashes
+        with self.assertRaises(Exception):
+            # python2 raises ImportError, python3 ModuleNotFoundError
+            PylintRunner(args)
+        # No functions in module
+        args.custom_path = module_without_funcs
+        with self.assertRaises(ValueError):
+            PylintRunner(args)
+
+    def test_custom_rules(self):
+        """See ../example_customs.py for defined functions"""
+        args = Namespace(rcfile=None, thresh=9.0, allow_errors=False,
+                         ignore_tests=False, keep_results=False,
+                         reduce_logging=False,
+                         verbosity=30, custom_path="tests.example_customs")
+        self.runner = PylintRunner(args)
+        # Functions correctly set
+        self.assertTrue(callable(self.runner.custom_rules))
+        self.assertTrue(callable(self.runner.custom_score))
+        # 1) Pass custom check but do not override (normally fails)
+        with self.assertRaises(SystemExit) as sys_exit:
+            self.runner.run([op.join(TEST_DIR, "inputs/test_input_crash.py")])
+        self.assertEqual(sys_exit.exception.code, 1)
+        # 2) Pass custom checks and override (normally fails)
+        with self.assertRaises(SystemExit) as sys_exit:
+            self.runner.run([op.join(TEST_DIR, "inputs/test_input_fail.py")])
+        self.assertEqual(sys_exit.exception.code, 0)
+        # 3) Fail custom checks and override (normally passes)
+        with self.assertRaises(SystemExit) as sys_exit:
+            self.runner.run([op.join(TEST_DIR, "inputs/test_input_pass.py")])
+        self.assertEqual(sys_exit.exception.code, 1)
+
+
     def tearDown(self):
         self.runner = None
 

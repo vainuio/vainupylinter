@@ -4,8 +4,9 @@ Wrap pylint inside custom class to do some customised handling of the result"
 # pylint: disable=line-too-long
 from __future__ import print_function
 import sys
-import logging
 import argparse
+import logging
+import importlib
 import os.path as op
 import pylint
 from pylint.lint import Run
@@ -57,6 +58,13 @@ def parse_args(args):
         help="Don't erase results when same runner is called multiple times"
     )
     parser.add_argument(
+        '-cp', '--custom-path',
+        type=str,
+        dest='custom_path',
+        default="",
+        help="Module (path) containing defined custom rules and scoring functions"
+    )
+    parser.add_argument(
         '-v', '--verbosity',
         type=int,
         dest='verbosity',
@@ -78,6 +86,24 @@ class PylintRunner(object):
         Specify location of .pylintrc wanted.
     thresh : float | 9.2 (Default)
         Threshold limit
+    allow_errors: bool | False (Default)
+        If True, return zero exit-code when pylint emits error message.
+        Default behaviour is to return exit code 1.
+    ignore_tests : bool | False (Default)
+        If True, test files will always pass
+    keep_results : bool | False (Default)
+        Save .coverage result to allow score comparisons
+    custom-path: str | ""
+        Module path to a file that contains custom_rules and custom_scoring.
+        These have to defined as follows:
+        custom_rules: function
+            Input: filepath as str
+            Output: tuple[bool, bool] (passed, override)
+        custom_score: function
+            Input: self.result.linter.stats (dict)
+                Contains the stats outputted by pylint runner
+            Output: custom_score, override pylint : tuple(bool, bool)
+
     """
     def __init__(self, args):
         self.rcfile = args.rcfile if args.rcfile else None
@@ -86,16 +112,42 @@ class PylintRunner(object):
         self.ignore_tests = args.ignore_tests
         self.keep_results = args.keep_results
         self.failed_files = []
+        self.custom_failed = []
         self.results = None
         self.fname = None
         self.logging = logging
         self.logging.basicConfig(level=args.verbosity,
                                  format='%(message)s')
 
+        custom_rules, custom_score = self.set_custom_functions(args.custom_path)
+        self.custom_rules = custom_rules
+        self.custom_score = custom_score
+
+    def set_custom_functions(self, custom_path):
+        """Use input module to import custom rules and custom scoring function"""
+        if not custom_path:
+            return None, None
+        custom_module = importlib.import_module(custom_path)
+        try:
+            custom_rules = getattr(custom_module, "custom_rules")
+        except AttributeError:
+            self.logging.warning("No 'custom_rules' defined in {}".format(custom_path))
+            custom_rules = None
+        try:
+            custom_score = getattr(custom_module, "custom_score")
+        except AttributeError:
+            self.logging.warning("No 'custom_score' defined in {}".format(custom_path))
+            custom_score = None
+        if not custom_rules and not custom_score:
+            raise ValueError("Custom module given but no custom_rules OR custom_score found!")
+        return custom_rules, custom_score
+
+
     def clean_up(self):
         """Clean results if same instance is going to be used"""
         self.fname = None
-        self.failed_files = None
+        self.failed_files = []
+        self.custom_failed = []
         self.results = None
 
     def run_pylint(self, fname):
@@ -155,13 +207,21 @@ class PylintRunner(object):
         """Do some custom checking based on the results"""
         errors = self.results.linter.stats.get('error', False)
         fatal = self.results.linter.stats.get('fatal', False)
-        score = self.results.linter.stats.get('global_note', False)
+        if self.custom_score:
+            score = self.custom_score(self.results.linter.stats)
+        else:
+            score = self.results.linter.stats.get('global_note', False)
         file_passed = True
 
         self.logging.info('\n------------------------------------------------------------------\n')
         self.logging.info('Your code has been rated at {0:.2f}/10\n'.format(score))
         self.logging.info('\n')
         self.logging.info('------------------------------------------------------------------')
+        if self.custom_rules:
+            passed_custom, override = self.custom_rules(self.fname)
+            if not passed_custom:
+                self.logging.warning("{} FAILED CUSTOM CHECKS".format(self.fname))
+                self.custom_failed.append(self.fname)
         if fatal:
             self.logging.warning("FATAL ERROR(S) DETECTED IN {}.".format(self.fname))
             file_passed = False
@@ -172,6 +232,10 @@ class PylintRunner(object):
             self.logging.warning("SCORE {} IS BELOW THE THRESHOLD {} for {}".format(score, self.thresh,
                                                                                     self.fname))
             file_passed = False
+        if self.custom_rules and passed_custom != file_passed and override:
+            self.logging.info("OVERRIDING STANDARD RESULT WITH CUSTOM FROM {} TO {}.".format(file_passed,
+                                                                                             passed_custom))
+            file_passed = passed_custom
         if not file_passed and self.ignore_tests and ("test_" in self.fname.split("/")[-1] or \
                                                       "tests.py" in self.fname):
             self.logging.info("ASSUMING {} IS TEST FILE. ALLOWING.".format(self.fname))
@@ -184,15 +248,23 @@ class PylintRunner(object):
 
     def report_results(self):
         """Final summary report"""
-        if not self.failed_files:
+        if not self.failed_files and not self.custom_failed:
             self.logging.info('------------------------------------------------------------------')
             self.logging.info("PYLINT WAS SUCCESSFUL!")
             self.logging.info('------------------------------------------------------------------')
             return 0
         self.logging.warning('------------------------------------------------------------------')
-        self.logging.warning("PYLINTING FAILED. THE FOLLOWING FILES DID NOT PASS.")
-        self.logging.warning('\n'.join(self.failed_files))
-        self.logging.info('------------------------------------------------------------------')
+        self.logging.warning("PYLINTING FAILED")
+        if self.failed_files:
+            self.logging.warning('------------------------------------------------------------------')
+            self.logging.warning("THE FOLLOWING FILES DID NOT PASS.")
+            self.logging.warning('\n'.join(self.failed_files))
+            self.logging.info('------------------------------------------------------------------')
+        if self.custom_failed:
+            self.logging.warning('------------------------------------------------------------------')
+            self.logging.warning("THE FOLLOWING FILES FAILED CUSTOM CHECKS.")
+            self.logging.warning('\n'.join(self.failed_files))
+            self.logging.info('------------------------------------------------------------------')
         return 1
 # pylint: enable=line-too-long
     def run(self, fnames):
@@ -217,7 +289,6 @@ class PylintRunner(object):
 
 def run():
     """Start the custom pylint run"""
-
     args = parse_args(sys.argv[1:])
     fnames = args.fnames
     runner = PylintRunner(args)
