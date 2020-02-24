@@ -107,7 +107,7 @@ class PylintRunner(object):
         Module path to a file that contains custom_rules and custom_scoring.
         These have to defined as follows:
         custom_rules: function
-            Input: filepath as str
+            Input: self.result.linter.stats (dict), filepath as str
             Output: tuple[bool, bool] (passed, override)
         custom_score: function
             Input: self.result.linter.stats (dict)
@@ -219,7 +219,8 @@ class PylintRunner(object):
         errors = self.results.linter.stats.get('error', False)
         fatal = self.results.linter.stats.get('fatal', False)
         if self.custom_score:
-            score = self.custom_score(self.results.linter.stats)
+            with redirect_stdout(PrintLogger(name="pylint", log_level="INFO")):
+                score = self.custom_score(self.results.linter.stats)
         else:
             score = self.results.linter.stats.get('global_note', False)
         file_passed = True
@@ -229,7 +230,8 @@ class PylintRunner(object):
         self.logging.info('\n')
         self.logging.info('------------------------------------------------------------------')
         if self.custom_rules:
-            passed_custom, override = self.custom_rules(self.fname)
+            with redirect_stdout(PrintLogger(name="pylint", log_level="INFO")):
+                passed_custom, override = self.custom_rules(self.results.linter.stats, self.fname)
             if not passed_custom:
                 self.logging.warning("{} FAILED CUSTOM CHECKS".format(self.fname))
                 self.custom_failed.append(self.fname)

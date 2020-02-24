@@ -53,11 +53,10 @@ Vainupylinter supports following features:
 
 1) Custom rules:
     - Allows users to define their own logic whether file should be accepted. For example, one can implement logic that does not allow pdb.set_trace() to be used
-    - The function MUST BE named `custom_rules`. Input is expected to be a file path and output has to be boolean (True / False)
-
+    - The function MUST BE named `custom_rules`. Input is expected to be a 1) stats from linter result and file path and output has to be tuple containing 2 floats: did the file pass and should the result override the standard check.
 2) Custom scoring:
     - Allows users to define custom scoring function. For example, if one wants to treat certain type of warning as fatal message.
-    - The function MUST BE named `custom_score`. `stats` containing the pylint result statistics is given as input and output is expected to be a tuple containing 2 floats: did the file pass and should the result override the standard check.
+    - The function MUST BE named `custom_score`. `stats` containing the pylint result statistics is given as input and output is expected to be boolean
 
 These functions should be defined in the same python file. The `--custom_path` argument needs to be module path (so rules.custom_rules instead of rules/custom_rules.py). You may have to add  `__init__.py` for the import to work.
 

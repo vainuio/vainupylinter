@@ -1,7 +1,7 @@
 """Examples to test that custom rules and scoring work as expected"""
 from __future__ import print_function
 
-def custom_rules(fname):
+def custom_rules(stats, fname=None):
     """For testing custom rules: do not allow any prints
     INPUTS:
         fname: (str)
@@ -15,6 +15,7 @@ def custom_rules(fname):
         return True, False
     if "test_input_fail.py" in fname:
         return True, True
+
     return False, True
 
 def custom_score(stats):
