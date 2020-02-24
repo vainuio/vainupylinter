@@ -2,7 +2,7 @@
 Wrap pylint inside custom class to do some customised handling of the result"
 """
 # pylint: disable=line-too-long
-from __future__ import print_function
+from __future__ import absolute_import, print_function
 import sys
 import argparse
 import logging
@@ -10,7 +10,16 @@ import importlib
 import os.path as op
 import pylint
 from pylint.lint import Run
-from print_logger import PrintLogger, redirect_stdout
+
+try:
+    ModuleNotFoundError
+except NameError:
+    ModuleNotFoundError = ImportError   # pylint: disable=redefined-builtin
+
+try:
+    from vainupylinter.print_logger import PrintLogger, redirect_stdout
+except ModuleNotFoundError:
+    from print_logger import PrintLogger, redirect_stdout
 
 
 def parse_args(args):
