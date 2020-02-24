@@ -10,6 +10,7 @@ import importlib
 import os.path as op
 import pylint
 from pylint.lint import Run
+from print_logger import PrintLogger, redirect_stdout
 
 
 def parse_args(args):
@@ -167,12 +168,13 @@ class PylintRunner(object):
         else:
             command_arg = [fname, '--score', 'no']
         try:
-            if int(pylint.__version__[0]) < 2:
-                self.results = Run(command_arg, exit=False) # pylint: disable=unexpected-keyword-arg
-            else:
-                # Use the default one
-                self.results = Run(command_arg, do_exit=False)   # pylint: disable=unexpected-keyword-arg
-            return True
+            with redirect_stdout(PrintLogger(name="pylint", log_level="INFO")):
+                if int(pylint.__version__[0]) < 2:
+                    self.results = Run(command_arg, exit=False) # pylint: disable=unexpected-keyword-arg
+                else:
+                    # Use the default one
+                    self.results = Run(command_arg, do_exit=False)   # pylint: disable=unexpected-keyword-arg
+                return True
         except Exception as error:  # pylint: disable=broad-except
             # We want to crash if ANYTHING goes wrong
             self.logging.warning('------------------------------------------------------------------')
