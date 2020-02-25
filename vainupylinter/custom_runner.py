@@ -21,6 +21,7 @@ try:
 except ModuleNotFoundError:
     from print_logger import PrintLogger, redirect_stdout
 
+sys.path.append(op.abspath("."))
 
 def parse_args(args):
     """Handle inputs"""
