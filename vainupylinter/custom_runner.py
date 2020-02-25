@@ -114,7 +114,6 @@ class PylintRunner(object):
             Input: self.result.linter.stats (dict)
                 Contains the stats outputted by pylint runner
             Output: custom_score, override pylint : tuple(bool, bool)
-
     """
     def __init__(self, args):
         self.rcfile = args.rcfile if args.rcfile else None
@@ -225,7 +224,6 @@ class PylintRunner(object):
         else:
             score = self.results.linter.stats.get('global_note', False)
         file_passed = True
-
         self.logging.info('\n------------------------------------------------------------------\n')
         self.logging.info('Your code has been rated at {0:.2f}/10\n'.format(score))
         self.logging.info('\n')
@@ -277,7 +275,7 @@ class PylintRunner(object):
         if self.custom_failed:
             self.logging.warning('------------------------------------------------------------------')
             self.logging.warning("THE FOLLOWING FILES FAILED CUSTOM CHECKS.")
-            self.logging.warning('\n'.join(self.failed_files))
+            self.logging.warning('\n'.join(self.custom_failed))
             self.logging.info('------------------------------------------------------------------')
         return 1
 # pylint: enable=line-too-long
