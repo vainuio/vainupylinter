@@ -23,8 +23,9 @@ printf "*********************\n"
 printf 'Running tests\n'
 
 coverage run --omit=*/test_* --source=vainupylinter -m unittest discover . > /dev/null
+exitCode=$?
 coverage report
-if [ $? -ne 0 ]; then
+if [ $exitCode -ne 0 ]; then
     echo 'Tests failed. Aborting commit'
     exit 1
 fi
