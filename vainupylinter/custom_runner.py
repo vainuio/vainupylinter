@@ -203,14 +203,14 @@ class PylintRunner(object):
             self.failed_files.append(fname)
             return False
 
-    def check_no_silent_crash(self):
+    def check_no_silent_crash(self, override=False):
         """Syntax error may cause pylint to fail without an actual exception. Or the file may
         just be defined to be ignored in .pylintrc"""
         if self.results:
             score = self.results.linter.stats.get('global_note', False)
             if score is False:
                 messages = self.results.linter.stats.get('by_msg', {})
-                if messages.get('syntax-error', False):
+                if messages.get('syntax-error', False) and not override:
                     self.logging.warning('\n------------------------------------------------------------------')
                     self.logging.warning('PYLINT FAILED BECAUSE SYNTAX ERROR.')
                     self.logging.warning('------------------------------------------------------------------')
@@ -223,26 +223,45 @@ class PylintRunner(object):
             return True
         return False
 
-    def eval_results(self):
-        """Do some custom checking based on the results"""
-        errors = self.results.linter.stats.get('error', False)
-        fatal = self.results.linter.stats.get('fatal', False)
-        if self.custom_score:
-            with redirect_stdout(PrintLogger(name="pylint", log_level="INFO")):
-                score = self.custom_score(self.results.linter.stats)
-        else:
-            score = self.results.linter.stats.get('global_note', False)
-        file_passed = True
-        self.logging.info('\n------------------------------------------------------------------\n')
-        self.logging.info('Your code has been rated at {0:.2f}/10\n'.format(score))
-        self.logging.info('\n')
-        self.logging.info('------------------------------------------------------------------')
+    def check_custom_rules(self):
+        """Check if custom rules passed"""
         if self.custom_rules:
             with redirect_stdout(PrintLogger(name="pylint", log_level="INFO")):
                 passed_custom, override = self.custom_rules(self.results.linter.stats, self.fname)
             if not passed_custom:
                 self.logging.warning("{} FAILED CUSTOM CHECKS".format(self.fname))
                 self.custom_failed.append(self.fname)
+            return passed_custom, override
+        return False, False
+
+    def check_score(self):
+        """Return standard score or customised score"""
+        if self.custom_score:
+            with redirect_stdout(PrintLogger(name="pylint", log_level="INFO")):
+                return self.custom_score(self.results.linter.stats)
+        return self.results.linter.stats.get('global_note', False)
+
+    def check_threshold(self, score):
+        """Check if custom / standard threshold limit is accepted"""
+        if self.custom_thresholding:
+            with redirect_stdout(PrintLogger(name="pylint", log_level="WARNING")):
+                return self.custom_thresholding(score, self.thresh, self.fname)
+        elif score < self.thresh:
+            self.logging.warning("SCORE {} IS BELOW THE THRESHOLD {} for {}".format(score, self.thresh,
+                                                                                    self.fname))
+            return False
+        return True
+
+    def eval_results(self, passed_custom, override):
+        """Do some custom checking based on the results"""
+        errors = self.results.linter.stats.get('error', False)
+        fatal = self.results.linter.stats.get('fatal', False)
+        score = self.check_score()
+        file_passed = True
+        self.logging.info('\n------------------------------------------------------------------\n')
+        self.logging.info('Your code has been rated at {0:.2f}/10\n'.format(score))
+        self.logging.info('\n')
+        self.logging.info('------------------------------------------------------------------')
         if fatal:
             self.logging.warning("FATAL ERROR(S) DETECTED IN {}.".format(self.fname))
             file_passed = False
@@ -250,13 +269,7 @@ class PylintRunner(object):
             self.logging.warning("ERROR(S) DETECTED IN {}.".format(self.fname))
             file_passed = False
         if score:
-            if self.custom_thresholding:
-                with redirect_stdout(PrintLogger(name="pylint", log_level="INFO")):
-                    file_passed = file_passed and self.custom_thresholding(score, self.thresh, self.fname)
-            elif score < self.thresh:
-                self.logging.warning("SCORE {} IS BELOW THE THRESHOLD {} for {}".format(score, self.thresh,
-                                                                                        self.fname))
-                file_passed = False
+            file_passed = file_passed and self.check_threshold(score)
         if self.custom_rules and passed_custom != file_passed and override:
             self.logging.info("OVERRIDING STANDARD RESULT WITH CUSTOM FROM {} TO {}.".format(file_passed,
                                                                                              passed_custom))
@@ -303,9 +316,11 @@ class PylintRunner(object):
         for fname in fnames:
             linted = self.run_pylint(fname=fname)
             if linted:
-                success = self.check_no_silent_crash()
+                custom_ok, override_standard = self.check_custom_rules()
+                override = custom_ok and override_standard
+                success = self.check_no_silent_crash(override=override)
                 if success:
-                    self.eval_results()
+                    self.eval_results(custom_ok, override)
         exit_code = self.report_results()
         if not self.keep_results:
             self.clean_up()
