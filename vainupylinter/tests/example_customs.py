@@ -31,3 +31,8 @@ def custom_score(stats):
         error = error + wildcards
         return 10.0 - ((float(5 * error + warning + refactor + convention) / statement) * 10)
     return stats['global_note']
+
+def custom_thresholding(score, threshold, fname):
+    if "notthere" in fname:
+        return score > -9
+    return score >= threshold

@@ -114,6 +114,10 @@ class PylintRunner(object):
             Input: self.result.linter.stats (dict)
                 Contains the stats outputted by pylint runner
             Output: custom_score, override pylint : tuple(bool, bool)
+        custom_thresholding: function
+            Input: score (float), threshold (float), filepath as str
+            Output: bool
+
     """
     def __init__(self, args):
         self.rcfile = args.rcfile if args.rcfile else None
@@ -128,15 +132,15 @@ class PylintRunner(object):
         self.logging = logging
         self.logging.basicConfig(level=args.verbosity,
                                  format='%(message)s')
-
-        custom_rules, custom_score = self.set_custom_functions(args.custom_path)
+        custom_rules, custom_score, custom_thresholding = self.set_custom_functions(args.custom_path)
         self.custom_rules = custom_rules
         self.custom_score = custom_score
+        self.custom_thresholding = custom_thresholding
 
     def set_custom_functions(self, custom_path):
         """Use input module to import custom rules and custom scoring function"""
         if not custom_path:
-            return None, None
+            return None, None, None
         custom_module = importlib.import_module(custom_path)
         try:
             custom_rules = getattr(custom_module, "custom_rules")
@@ -148,9 +152,14 @@ class PylintRunner(object):
         except AttributeError:
             self.logging.warning("No 'custom_score' defined in {}".format(custom_path))
             custom_score = None
-        if not custom_rules and not custom_score:
-            raise ValueError("Custom module given but no custom_rules OR custom_score found!")
-        return custom_rules, custom_score
+        try:
+            custom_thresholding = getattr(custom_module, "custom_thresholding")
+        except AttributeError:
+            self.logging.warning("No 'custom_score' defined in {}".format(custom_path))
+            custom_thresholding = None
+        if not custom_rules and not custom_score and not custom_thresholding:
+            raise ValueError("Custom module given but no custom_rules, custom_score found OR custom_thresholding!")
+        return custom_rules, custom_score, custom_thresholding
 
 
     def clean_up(self):
@@ -240,10 +249,14 @@ class PylintRunner(object):
         if errors and not self.allow_errors:
             self.logging.warning("ERROR(S) DETECTED IN {}.".format(self.fname))
             file_passed = False
-        if score and score < self.thresh:
-            self.logging.warning("SCORE {} IS BELOW THE THRESHOLD {} for {}".format(score, self.thresh,
-                                                                                    self.fname))
-            file_passed = False
+        if score:
+            if self.custom_thresholding:
+                with redirect_stdout(PrintLogger(name="pylint", log_level="INFO")):
+                    file_passed = file_passed and self.custom_thresholding(score, self.thresh, self.fname)
+            elif score < self.thresh:
+                self.logging.warning("SCORE {} IS BELOW THE THRESHOLD {} for {}".format(score, self.thresh,
+                                                                                        self.fname))
+                file_passed = False
         if self.custom_rules and passed_custom != file_passed and override:
             self.logging.info("OVERRIDING STANDARD RESULT WITH CUSTOM FROM {} TO {}.".format(file_passed,
                                                                                              passed_custom))

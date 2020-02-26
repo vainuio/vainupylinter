@@ -57,7 +57,32 @@ Vainupylinter supports following features:
 2) Custom scoring:
     - Allows users to define custom scoring function. For example, if one wants to treat certain type of warning as fatal message.
     - The function MUST BE named `custom_score`. `stats` containing the pylint result statistics is given as input and output is expected to be boolean
+3) Custom thresholding
+    - Allows more complex threshold checks. For example, files in specified subdirectories can have different threshold than in main.
+    - The function MUST BE named `custom_thresholding`. The function takes  score, default threshold and fname as input, and returns bool (passed or not)
 
-These functions should be defined in the same python file. The `--custom_path` argument needs to be module path (so rules.custom_rules instead of rules/custom_rules.py). You may have to add  `__init__.py` for the import to work.
+These functions should be defined in the same python file. The `--custom_path` argument needs to be module path (so rules.custom_rules instead of rules/custom_rules.py). You may have to add  `__init__.py` for the import to work. The file must be in the directory or subdirectory of the directory vainupylinter is called.
+
+In the following file structure, vainupylinter can find rules from `project`, `folder1` and `subfolder1` when called at project-level. If vainupylinter is called in `subfolder1`, rules cannot be found from `folder1`or its parent directory.
+
+```
+project
+│   README.md
+│   __init__.py  
+│
+└───folder1
+│   │   __init__.py
+│   │  code1.py
+│   │
+│   └───subfolder1
+│       │   __init__.py
+│       │   
+│       │   ...
+│   
+└───folder2
+    │   code2.py
+
+```
+
 
 Remember, that if you want the option to silence the defined custom warnings, you have to add logic for it in `custom_rules` function.
