@@ -14,12 +14,13 @@ from argparse import Namespace
 
 TEST_DIR = op.dirname(op.abspath(__file__))
 sys.path.insert(0, op.abspath(op.join(op.dirname(__file__), "..")))
-
+# pylint:disable=wrong-import-position, import-error
 from custom_runner import (
     PylintRunner,
     parse_args,
-)  # pylint:disable=wrong-import-position, import-error
+)
 
+# pylint:enable=wrong-import-position, import-error
 # pylint: disable=missing-docstring
 class VainuTestCase(unittest.TestCase):
     def setUp(self):

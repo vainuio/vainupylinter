@@ -10,7 +10,7 @@ from setuptools import setup, find_packages
 if sys.version_info[0] < 3:
     if sys.version_info[1] < 7:
         raise ValueError("Only python >= 2.7 is supported")
-    INSTALL_REQUIRES = ["pylint==1.9", "mock"]
+    INSTALL_REQUIRES = ["pylint==1.9.5", "mock"]
 else:
     INSTALL_REQUIRES = ["pylint>2.0"]
 
@@ -22,7 +22,7 @@ setup(
     author="susanna@vainu.io",
     author_email="susanna@vainu.io",
     description="A custom pylint runner for pylint in use in some Vainu repositories",
-    version="1.1.1",
+    version="1.1.2",
     packages=find_packages(),
     entry_points={"console_scripts": ["vainupylinter=vainupylinter.custom_runner:run"],},
     include_package_data=True,
